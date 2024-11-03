@@ -8,7 +8,7 @@ import altair as alt
 # Function to handle API request
 def search_api(query, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://127.0.0.1:8080/searchLucene?searchstring={query}&resultnumber={resultnumber}"
+    url = f"http://backend:8080/searchLucene?searchstring={query}&resultnumber={resultnumber}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -20,7 +20,7 @@ def search_api(query, resultnumber=10):
 
 def search_api_monetdb(query, year=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://127.0.0.1:8080/searchMariaDB?searchstring={query}&resultnumber={resultnumber}&year={year}"
+    url = f"http://backend:8080/searchMariaDB?searchstring={query}&resultnumber={resultnumber}&year={year}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -32,7 +32,7 @@ def search_api_monetdb(query, year=2024, resultnumber=10):
 
 def search_api_monetdb_meta(query, timestamp=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://127.0.0.1:8080/searchMariaDB-Metadata?searchstring={query}&resultnumber={resultnumber}&timestamp={timestamp}"
+    url = f"http://backend:8080/searchMariaDB-Metadata?searchstring={query}&resultnumber={resultnumber}&timestamp={timestamp}"
     print(url)
     response = requests.get(url)
 
@@ -44,7 +44,7 @@ def search_api_monetdb_meta(query, timestamp=2024, resultnumber=10):
         return {"Error": "Failed to fetch data"}
 
 def get_queries():
-    url = f"http://localhost:8080/queries"
+    url = f"http://backend:8080/queries"
     response = requests.get(url)
     if response.status_code == 200:
         root = ET.fromstring(response.content)
