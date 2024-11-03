@@ -1,3 +1,4 @@
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 import requests
@@ -7,7 +8,7 @@ import altair as alt
 # Function to handle API request
 def search_api(query, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchLucene?searchstring={query}&resultnumber={resultnumber}"
+    url = f"http://127.0.0.1:8080/searchLucene?searchstring={query}&resultnumber={resultnumber}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -19,7 +20,7 @@ def search_api(query, resultnumber=10):
 
 def search_api_monetdb(query, year=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchMariaDB?searchstring={query}&resultnumber={resultnumber}&year={year}"
+    url = f"http://127.0.0.1:8080/searchMariaDB?searchstring={query}&resultnumber={resultnumber}&year={year}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -31,7 +32,8 @@ def search_api_monetdb(query, year=2024, resultnumber=10):
 
 def search_api_monetdb_meta(query, timestamp=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchMariaDB-Metadata?searchstring={query}&resultnumber={resultnumber}&timestamp={timestamp}"
+    url = f"http://127.0.0.1:8080/searchMariaDB-Metadata?searchstring={query}&resultnumber={resultnumber}&timestamp={timestamp}"
+    print(url)
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -86,7 +88,7 @@ def parse_queries(xml_data):
         id = item.find('id').text
         query = item.find('query').text
         result_count = item.find('result_count').text
-        executed = item.find('executed').text
+        executed = datetime.fromtimestamp(int(item.find('executed').text)/1000)
         result_hash = item.find('result_hash').text
         data.append({'id': id, "query": query, 'result_count': result_count, 'executed': executed, "result_hash": result_hash})
     return data
@@ -126,12 +128,15 @@ if page == "Time Travel":
     year = st.slider("Select Year", min_value=1970, max_value=2021, value=2021)
     if query:
         result = pd.DataFrame(search_api_monetdb(query, year, 20 ))
-        result['year'] = year
-        result['Position'] = result.index + 1
-        df_display = result[['Position', 'Name', 'Score']].reset_index(drop=True)
-        _, col_center, _ = st.columns([1,2,1])
-        with col_center:
-            st.dataframe(df_display, hide_index=True, use_container_width =True)
+        if not result.empty:
+            result['year'] = year
+            result['Position'] = result.index + 1
+            df_display = result[['Position', 'Name', 'Score']].reset_index(drop=True)
+            _, col_center, _ = st.columns([1,2,1])
+            with col_center:
+                st.dataframe(df_display, hide_index=True, use_container_width =True)
+        if result.empty:
+            st.write(f"No results for query: {query} in the year: {year}")
 
 elif page == "Reproducibility":
     # Common search bar
@@ -143,7 +148,8 @@ elif page == "Reproducibility":
 
     if selected_query:
         selected_row = df[df['query'] == selected_query].iloc[0]
-        result = search_api_monetdb_meta(selected_row['query'], selected_row['executed'], selected_row['result_count'])
+        timestamp_picked = datetime.strptime(str(selected_row['executed']),  "%Y-%m-%d %H:%M:%S")
+        result = search_api_monetdb_meta(selected_row['query'], int(timestamp_picked.timestamp())*1000, selected_row['result_count'])
         col1, col2 = st.columns(2)
         with col1:
             st.write(f"Query executed: {result[0].get('query')}")
@@ -159,16 +165,20 @@ elif page == "Score":
     if query:
         result = search_api(query)
         result_monet = search_api_monetdb(query)
-        df = pd.DataFrame(result)
-        df_monet = pd.DataFrame(result)
+        if not result.empty:
+            df = pd.DataFrame(result)
+            df_monet = pd.DataFrame(result)
 
-        col1, col2 = st.columns([1,1])
-        with col1:
-            st.write("Lucene")
-            st.dataframe(df)
-        with col2:
-            st.write("MonetDB")
-            st.dataframe(df_monet)
+            col1, col2 = st.columns([1,1])
+            with col1:
+                st.write("Lucene")
+                st.dataframe(df)
+            with col2:
+                st.write("MonetDB")
+                st.dataframe(df_monet)
+
+        if result.empty:
+            st.write("No results")
 
 
 elif page == "Change over Time":
@@ -195,59 +205,61 @@ elif page == "Change over Time":
                 result['position'] = result.index + 1
                 df_list.append(result)
             df_total = pd.concat(df_list, ignore_index=True)
+            if not df_total.empty:
+                col_chart1, col_chart2 = st.columns([1, 1])
+                with col_chart1:
+                    # Create the line chart
+                    line = alt.Chart(df_total).mark_line().encode(
+                        x='year:O',  # Or x='year:T' if year is a datetime
+                        y=alt.Y('position:Q', scale=alt.Scale(reverse=True), axis=alt.Axis(values=list(range(1, results)))),
+                        color=alt.Color('Name:N', legend=None),
+                        tooltip=['Name', 'year', 'position', 'Score']
+                    ).properties(
+                        title='Position Change Over Years'
+                    )
 
-            col_chart1, col_chart2 = st.columns([1, 1])
-            with col_chart1:
-                # Create the line chart
-                line = alt.Chart(df_total).mark_line().encode(
-                    x='year:O',  # Or x='year:T' if year is a datetime
-                    y=alt.Y('position:Q', scale=alt.Scale(reverse=True), axis=alt.Axis(values=list(range(1, results)))),
-                    color=alt.Color('Name:N', legend=None),
-                    tooltip=['Name', 'year', 'position', 'Score']
-                ).properties(
-                    title='Position Change Over Years'
-                )
+                    # Create the point plot
+                    points = alt.Chart(df_total).mark_point().encode(
+                        x='year:O',
+                        y=alt.Y('position:Q', scale=alt.Scale(reverse=True)),
+                        color=alt.Color('Name:N', legend=None),
+                        tooltip=['Name', 'year', 'position', 'Score']
+                    )
 
-                # Create the point plot
-                points = alt.Chart(df_total).mark_point().encode(
-                    x='year:O',
-                    y=alt.Y('position:Q', scale=alt.Scale(reverse=True)),
-                    color=alt.Color('Name:N', legend=None),
-                    tooltip=['Name', 'year', 'position', 'Score']
-                )
+                    # Layer the line chart and point plot together
+                    position_chart = alt.layer(line, points).interactive()
 
-                # Layer the line chart and point plot together
-                position_chart = alt.layer(line, points).interactive()
-
-                # Display chart in Streamlit
-                st.altair_chart(position_chart, use_container_width=True)
+                    # Display chart in Streamlit
+                    st.altair_chart(position_chart, use_container_width=True)
 
 
-            with col_chart2:
-                # Define the min and max for the y-axis domain
-                min_score = round(df_total['Score'].min() - 0.5)
-                max_score = round(df_total['Score'].max())
+                with col_chart2:
+                    # Define the min and max for the y-axis domain
+                    min_score = round(df_total['Score'].min() - 0.5)
+                    max_score = round(df_total['Score'].max())
 
-                # Create the line chart
-                line = alt.Chart(df_total).mark_line().encode(
-                    x='year:O',  # Or x='year:T' if year is a datetime
-                    y=alt.Y('Score:Q', scale=alt.Scale(domain=[min_score, max_score])),
-                    color=alt.Color('Name:N', legend=None),
-                    tooltip=['Name', 'year', 'Score']
-                ).properties(
-                    title='Score Change Over Years'
-                )
+                    # Create the line chart
+                    line = alt.Chart(df_total).mark_line().encode(
+                        x='year:O',  # Or x='year:T' if year is a datetime
+                        y=alt.Y('Score:Q', scale=alt.Scale(domain=[min_score, max_score])),
+                        color=alt.Color('Name:N', legend=None),
+                        tooltip=['Name', 'year', 'Score']
+                    ).properties(
+                        title='Score Change Over Years'
+                    )
 
-                # Create the point plot
-                points = alt.Chart(df_total).mark_point().encode(
-                    x='year:O',
-                    y=alt.Y('Score:Q', scale=alt.Scale(domain=[min_score, max_score])),
-                    color=alt.Color('Name:N', legend=None),
-                    tooltip=['Name', 'year', 'Score']
-                )
+                    # Create the point plot
+                    points = alt.Chart(df_total).mark_point().encode(
+                        x='year:O',
+                        y=alt.Y('Score:Q', scale=alt.Scale(domain=[min_score, max_score])),
+                        color=alt.Color('Name:N', legend=None),
+                        tooltip=['Name', 'year', 'Score']
+                    )
 
-                # Layer the line chart and point plot together
-                score_chart = alt.layer(line, points).interactive()
+                    # Layer the line chart and point plot together
+                    score_chart = alt.layer(line, points).interactive()
 
-                # Display chart in Streamlit
-                st.altair_chart(score_chart, use_container_width=True)
+                    # Display chart in Streamlit
+                    st.altair_chart(score_chart, use_container_width=True)
+            if df_total.empty:
+                st.write("No results to visualize")
