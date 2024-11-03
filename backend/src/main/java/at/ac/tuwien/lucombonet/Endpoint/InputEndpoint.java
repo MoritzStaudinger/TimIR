@@ -79,7 +79,7 @@ public class InputEndpoint {
     @PostMapping("/createIRAnthology")
     public String createIRAntology() {
         try {
-            return fileInputService.createIndex("ir-anthology-documents_small.jsonl");
+            return fileInputService.createIndex("ir-anthology-documents.jsonl");
         } catch(IOException e) {
             e.printStackTrace();
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST);

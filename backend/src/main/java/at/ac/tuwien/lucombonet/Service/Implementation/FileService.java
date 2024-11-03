@@ -255,7 +255,7 @@ public class FileService implements IFileService {
         sb.append("lucene time: " + (luceneIndexingEnd.getTime() - luceneIndexingStart.getTime())+"\n");
         sb.append("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString()+"\n");
         sb.append("monetdb time: " + (MonetDBIndexingEnd.getTime() - luceneIndexingEnd.getTime())+"\n\n");
-        Files.write(Paths.get("data/indexing.txt"), sb.toString().getBytes(), StandardOpenOption.APPEND);
+        //Files.write(Paths.get("data/indexing.txt"), sb.toString().getBytes(), StandardOpenOption.APPEND);
     }
 
     private void addToBatch(Doc dc, Terms termVector) throws IOException {
