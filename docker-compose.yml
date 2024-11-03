@@ -1,0 +1,53 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=password   # Replace with a secure root password
+      - MYSQL_DATABASE=demo             # Replace with your desired database name
+      - MYSQL_USER=root                     # Replace with a custom user
+      - MYSQL_PASSWORD=password        # Replace with the custom user's password
+    ports:
+      - "3306:3306"
+
+  monetdb:
+    image: monetdb/monetdb:latest
+    container_name: monetdb
+    restart: always
+    environment:
+      - MDB_DB_ADMIN_PASS=monetdb   # Replace with a secure root password # Replace with a secure root password
+      - MDB_CREATE_DBS=demo             # Replace with your desired database name # Replace with the custom user's password
+    ports:
+      - "50000:50000"
+    volumes:
+      - shared-data:/data
+
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=monet
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mariadb
+      - monetdb
+    volumes:
+      - shared-data:/data
+
+  frontend:
+    build: ./streamlit
+    container_name: frontend
+    restart: always
+    ports:
+      - "8501:8501"
+
+volumes:
+    shared-data:
+
+
+
+

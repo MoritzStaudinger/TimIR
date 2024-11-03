@@ -197,7 +197,7 @@ public class FileService implements IFileService {
         System.out.println("Elements indexed in Lucene " +luceneConfig.getReader().numDocs());
         Timestamp t = new Timestamp(System.currentTimeMillis());
 
-        BufferedWriter writer = new BufferedWriter(new FileWriter("doc.txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("data/doc.txt"));
         Long index = documentDao.getMaxId();
         int count = 0;
         for(int i = 0; i < luceneConfig.getReader().maxDoc(); i++) {
@@ -229,19 +229,19 @@ public class FileService implements IFileService {
                 if(count == batchSize) {
                     writer.close();
                     System.out.println("Batch " + batchcounter++ + " written");
-                    File f = new File("doc.txt");
+                    File f = new File("data/doc.txt");
                     String filename = f.getAbsolutePath().replace("\\", "\\\\");
                     documentDao.saveAll("\'"+filename+"\'");
                     //f.delete();
                     addTermsToDB();
                     count = 0;
-                    writer = new BufferedWriter(new FileWriter("doc.txt"));
+                    writer = new BufferedWriter(new FileWriter("data/doc.txt"));
                 }
             }
         }
         //add the last elements;
         writer.close();
-        File f = new File("doc.txt");
+        File f = new File("data/doc.txt");
         String filename = f.getAbsolutePath().replace("\\", "\\\\");
         documentDao.saveAll("\'"+filename+"\'");
         //f.delete();
@@ -255,7 +255,7 @@ public class FileService implements IFileService {
         sb.append("lucene time: " + (luceneIndexingEnd.getTime() - luceneIndexingStart.getTime())+"\n");
         sb.append("monetdb end: " + MonetDBIndexingEnd.toLocalDateTime().toString()+"\n");
         sb.append("monetdb time: " + (MonetDBIndexingEnd.getTime() - luceneIndexingEnd.getTime())+"\n\n");
-        Files.write(Paths.get("results/indexing.txt"), sb.toString().getBytes(), StandardOpenOption.APPEND);
+        Files.write(Paths.get("data/indexing.txt"), sb.toString().getBytes(), StandardOpenOption.APPEND);
     }
 
     private void addToBatch(Doc dc, Terms termVector) throws IOException {
@@ -273,7 +273,7 @@ public class FileService implements IFileService {
                 .filter(d ->!dics.contains(d.getTerm()))
                 .collect(Collectors.toList());
         if(dicUpdated.size() > 1) {
-            BufferedWriter writer = new BufferedWriter(new FileWriter("dictionaries.txt"));
+            BufferedWriter writer = new BufferedWriter(new FileWriter("data/dictionaries.txt"));
             Long i = dictionaryDao.getMaxId();
 
             for(Dictionary dictionary : dicUpdated) {
@@ -285,14 +285,14 @@ public class FileService implements IFileService {
                 }
             }
             writer.close();
-            File f = new File("dictionaries.txt");
+            File f = new File("data/dictionaries.txt");
             String filename = f.getAbsolutePath().replace("\\", "\\\\");
             dictionaryDao.saveAll("\'"+filename+"\'");
             f.delete();
         }
         HashMap<String, Dictionary> dicMap = dictionaryDao.getAllMap();
 
-        BufferedWriter writer = new BufferedWriter(new FileWriter("docterms.txt"));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("data/docterms.txt"));
         docTermsTemp.parallelStream().forEach(d -> {
             if(dicMap.get(d.getTerm()) != null ) {
                 try {
@@ -303,7 +303,7 @@ public class FileService implements IFileService {
             }
         });
         writer.close();
-        File f = new File("docterms.txt");
+        File f = new File("data/docterms.txt");
         String filename = f.getAbsolutePath().replace("\\", "\\\\");
         docTermDao.saveAll("\'"+filename+"\'");
         f.delete();

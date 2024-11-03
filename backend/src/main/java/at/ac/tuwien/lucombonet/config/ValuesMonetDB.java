@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class ValuesMonetDB implements Values{
 
-    @Value("jdbc:monetdb://localhost:50000/demo")
+    @Value("${db_url}")
     private String dbUrl;
 
     @Value("monetdb")
