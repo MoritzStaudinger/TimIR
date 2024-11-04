@@ -97,7 +97,7 @@ def parse_queries(xml_data):
 st.set_page_config(layout="wide")
 # Sidebar for navigation
 #st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["General Information", "Time Travel", "Reproducibility", "Change over Time", "Score"])
+page = st.sidebar.radio("Go to", ["General Information", 'Score',"Time Travel", "Reproducibility", "Change over Time"])
 
 
 
@@ -165,10 +165,9 @@ elif page == "Score":
     if query:
         result = search_api(query)
         result_monet = search_api_monetdb(query)
-        if not result.empty:
-            df = pd.DataFrame(result)
-            df_monet = pd.DataFrame(result)
-
+        df = pd.DataFrame(result)
+        df_monet = pd.DataFrame(result)
+        if not df.empty:
             col1, col2 = st.columns([1,1])
             with col1:
                 st.write("Lucene")
@@ -176,8 +175,7 @@ elif page == "Score":
             with col2:
                 st.write("MonetDB")
                 st.dataframe(df_monet)
-
-        if result.empty:
+        if df.empty:
             st.write("No results")
 
 
