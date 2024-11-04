@@ -1,14 +1,20 @@
 from datetime import datetime
 import pandas as pd
+import re
 import streamlit as st
 import requests
 import xml.etree.ElementTree as ET
 import altair as alt
 
+def remove_special_characters(text):
+    bad_chars = [';', ':', '!', "\"", "*"]
+    for i in bad_chars:
+        text = text.replace(i, '')
+    return text
 # Function to handle API request
 def search_api(query, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchLucene?searchstring={query}&resultnumber={resultnumber}"
+    url = f"http://backend:8080/searchLucene?searchstring={remove_special_characters(query)}&resultnumber={resultnumber}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -20,7 +26,7 @@ def search_api(query, resultnumber=10):
 
 def search_api_monetdb(query, year=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchMariaDB?searchstring={query}&resultnumber={resultnumber}&year={year}"
+    url = f"http://backend:8080/searchMariaDB?searchstring={remove_special_characters(query)}&resultnumber={resultnumber}&year={year}"
     response = requests.get(url)
 
     if response.status_code == 200:
@@ -32,7 +38,7 @@ def search_api_monetdb(query, year=2024, resultnumber=10):
 
 def search_api_monetdb_meta(query, timestamp=2024, resultnumber=10):
     # Example API endpoint (you'll need to replace this with the actual one)
-    url = f"http://backend:8080/searchMariaDB-Metadata?searchstring={query}&resultnumber={resultnumber}&timestamp={timestamp}"
+    url = f"http://backend:8080/searchMariaDB-Metadata?searchstring={remove_special_characters(query)}&resultnumber={resultnumber}&timestamp={timestamp}"
     print(url)
     response = requests.get(url)
 
@@ -126,7 +132,7 @@ if page == "Time Travel":
     query = st.text_input("Enter your search query:")
     # Year slider (you can customize the range)
     year = st.slider("Select Year", min_value=1970, max_value=2021, value=2021)
-    if query:
+    if query and len(query.strip()) > 1:
         result = pd.DataFrame(search_api_monetdb(query, year, 20 ))
         if not result.empty:
             result['year'] = year
@@ -162,7 +168,7 @@ elif page == "Score":
     # Common search bar
     query = st.text_input("Enter your search query:")
 
-    if query:
+    if query and len(query.strip()) > 1:
         result = search_api(query)
         result_monet = search_api_monetdb(query)
         df = pd.DataFrame(result)
@@ -195,7 +201,7 @@ elif page == "Change over Time":
 
 
     if year or query or previous_years or results:
-        if query:
+        if query and len(query.strip()) > 1:
             df_list = []
             for i in range(0, previous_years):
                 result = pd.DataFrame(search_api_monetdb(query, year - i, resultnumber=results))
